@@ -25,13 +25,16 @@
     <link rel="manifest" href="./assets/img/favicons/manifest.json">
     <meta name="msapplication-TileImage" content="./assets/img/icons/favicon.ico">
     <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link href="node_modules/toastr/build/toastr.css" rel="stylesheet">
     <script src="node_modules/imagesloaded/imagesloaded.pkgd.min.js"></script>
     <script src="node_modules/simplebar/dist/simplebar.min.js"></script>
     <script src="assets/js/config.js"></script>
     <script src="static/config/main.js"></script>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css"/>
     <script src="assets/js/sweetalert2@11.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
 
@@ -43,14 +46,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&amp;display=swap"
         rel="stylesheet">
     <!--link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.min.css"-->
+
+    <link href="node_modules/choices.js/public/assets/styles/choices.min.css" rel="stylesheet">
     <link href="node_modules/simplebar/dist/simplebar.min.css" rel="stylesheet">
     <link href="node_modules/dropzone/dist/dropzone.css" rel="stylesheet">
+    <link href="libs/choices/choices.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.8/css/line.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
     <link href="assets/css/theme-rtl.min.css" type="text/css" rel="stylesheet" id="style-rtl">
     <link href="assets/css/theme.min.css" type="text/css" rel="stylesheet" id="style-default">
     <link href="assets/css/theme-custom-console.css" type="text/css" rel="stylesheet" id="style-default">
-    <link href="assets/css/theme-custom-fix.css" type="text/css" rel="stylesheet" id="style-default">
+    <link href="assets/css/theme-custom-fix.css?v=1.0.2" type="text/css" rel="stylesheet" id="style-default">
     <link href="./assets/css/user-rtl.min.css" type="text/css" rel="stylesheet" id="user-style-rtl">
     <link href="./assets/css/user.min.css" type="text/css" rel="stylesheet" id="user-style-default">
     <script>
@@ -796,6 +802,470 @@
             overflow: auto !important;
         }
     </style>
+    <!-- Modal QR -->
+    <style>
+        .switch-container {
+            position: relative;
+            display: inline-block;
+            width: 85px;
+            height: 30px;
+        }
+
+        .switch-container input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #747474;
+            transition: .4s;
+            border-radius: 30px;
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        .switch-slider:after {
+            position: absolute;
+            content: 'Cerrado';
+            color: #000;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        input:checked+.switch-slider {
+            background-color: #28a745;
+        }
+
+        input:checked+.switch-slider:before {
+            transform: translateX(55px);
+        }
+
+        input:checked+.switch-slider:after {
+            content: 'Público';
+            left: 12px;
+            right: auto;
+        }
+
+        .qr-btn {
+            display: none;
+            cursor: pointer;
+            color: gray;
+            transition: color .3s;
+            vertical-align: middle;
+            height: 40px;
+            line-height: 40px;
+            margin: 0 4px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-btn.active {
+            display: inline-flex;
+            color: #007bff !important;
+        }
+
+        @media print {
+
+            /* 1. Oculta todo lo que está fuera del modal */
+            body>*:not(#qrControlModal) {
+                display: none;
+            }
+
+            /* 2. Asegura que el modal ocupe toda la página y elimina sombras/bordes */
+            #qrControlModal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                max-width: none;
+                max-height: none;
+                padding: 0;
+                margin: 0;
+                border: none;
+                box-shadow: none;
+                overflow: hidden;
+                display: flex !important;
+                /* Forzar la visualización */
+                opacity: 1 !important;
+            }
+
+            /* 3. Oculta el fondo oscuro del modal */
+            .modal-backdrop {
+                display: none !important;
+            }
+
+            /* 4. Oculta el encabezado y el botón de imprimir */
+            #qrControlModal .modal-header,
+            #qrControlModal #btnPrintQR {
+                display: none;
+            }
+
+            /* 5. Centra el contenido del QR en la hoja */
+            #qrControlModal .modal-dialog,
+            #qrControlModal .modal-content,
+            #qrControlModal .modal-body {
+                width: 100%;
+                height: 100%;
+                max-width: none;
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            /* 6. Elimina cualquier relleno extra */
+            #qrControlModal #qr-print-section {
+                padding: 0;
+                margin: 0;
+            }
+        }
+    </style>
+    <style>
+        .menu-list {
+            display: block;
+            padding-left: 0;
+            margin-bottom: 0;
+            list-style: none;
+        }
+
+        .jstree-open>.jstree-anchor>.fa-box:before {
+            content: "\f49e";
+        }
+
+        .text-blue-1 {
+            color: #0178d4 !important;
+        }
+
+        .text-blue-2 {
+            color: #50d9fe !important;
+        }
+
+        .text-coffe {
+            color: #765401 !important;
+        }
+
+        #toast-container>.toast-error,
+        .toast-error {
+            background-color: red;
+        }
+
+        /*#listnodetree{
+            height: 55vh;
+            overflow: auto;
+        }*/
+    </style>
+
+    <style>
+        .fileinput-dropzone {
+            display: block;
+            padding: 2.5rem;
+            text-align: center;
+            color: #888c9b;
+            border-radius: .25rem;
+            border: 2px dashed rgba(34, 34, 48, .1);
+            transition: all .2s;
+            width: 100%;
+        }
+
+        .fileinput-button,
+        .fileinput-dropzone {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .fileinput-button input,
+        .fileinput-dropzone input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            direction: ltr;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .not-border {
+            outline: none;
+            -webkit-box-shadow: none;
+            box-shadow: none;
+            border-color: transparent;
+        }
+
+        #listnodetree {
+            height: calc(100vh - var(--phoenix-navbar-top-height) - 8.5rem) !important;
+            overflow-x: hidden !important;
+            overflow-y: revert-layer !important;
+        }
+    </style>
+
+    <style>
+        .jstree-default .jstree-icon {
+            width: 14px;
+            height: 24px;
+            line-height: 24px;
+        }
+
+        .jstree-contextmenu {
+            font-size: .8rem;
+        }
+
+        .jstree-contextmenu svg {
+            margin-right: .5rem;
+            width: 1rem;
+        }
+
+        .vakata-context li>a {
+            padding: 0 2rem 0 .5rem;
+        }
+
+        /* Smaller jsTree text */
+        #listnodetree .jstree-anchor {
+            font-size: 0.8rem;
+            /* tweak value, e.g. 0.75rem or 12px */
+            line-height: 1.2;
+            /* keeps spacing tight */
+        }
+
+        /* Optional: make icons align better */
+        #listnodetree .jstree-icon {
+            font-size: 0.9em;
+        }
+    </style>
+    <style>
+        .flatpickr-calendar.open {
+            z-index: 9999 !important;
+        }
+    </style>
+    <style>
+        #timeSliderDiv {
+            position: absolute;
+            left: 100px;
+            right: 100px;
+            bottom: 20px;
+          }
+    
+          .HK-theme .esri-widget,
+          .HK-theme .esri-widget--button,
+          .HK-theme .esri-menu,
+          .HK-theme .esri-popup__main-container,
+          .HK-theme .esri-popup .esri-popup__pointer-direction,
+          .HK-theme .esri-popup .esri-popup__button,
+          .HK-theme .esri-button,
+          .HK-theme .esri-input,
+        /*  .HK-theme .esri-time-slider__slider
+          .HK-theme .esri-time-slider 
+          .HK-theme .esri-widget .esri-time-slider__mode--time-window
+          .HK-theme .esri-time-slider__layout--wide 
+          .HK-theme .esri-component */
+          .HK-theme .esri-widget a {
+            background-color: #006b39;
+            color: #fff;
+          }
+          .HK-theme .esri-basemap-gallery__item-title {
+                font-size: 12px;
+                word-break: break-word;
+                color: #f7f3f3;
+                padding: 0 7px;
+            }
+          .HK-theme .esri-widget--button:focus,
+          .HK-theme .esri-widget--button:hover,
+          .HK-theme .esri-menu li:focus,
+          .HK-theme .esri-menu li:hover {
+            background-color: #d23a29;
+            color: #fff;
+          }
+    
+          .HK-theme .esri-button:focus,
+          .HK-theme .esri-button:hover {
+            color: #fff;
+          }
+    
+          .HK-theme .esri-search__input::-moz-placeholder {
+            color: #ccc;
+            opacity: 1;
+          }
+          .HK-theme .esri-search__input:-ms-input-placeholder {
+            color: #ccc;
+          }
+          .HK-theme .esri-search__input::-webkit-input-placeholder {
+            color: #ccc;
+          }
+          .HK-theme .esri-widget__table {
+          	color: #fff;
+          }
+	      .HK-theme .esri-popup__header-title:hover {
+	        background-color: #34495e3d;
+        }
+        .esri-time-slider__slider {
+        background-color: #006b39;
+        padding: 0 40px 0 40px;
+        }
+        .esri-time-slider__time-extent-date {
+        font-weight: 600;
+        color: #f8f8f9;
+        }
+        .esri-legend {
+        background-color: #e4ece8 !important ;
+        color: rgb(5, 5, 5) !important;
+        height: 120px !important;
+        min-width: 120px !important;
+        }
+        .esri-legend--stacked .esri-legend--card__section {
+              border: none;
+              overflow: auto;
+              height: auto;
+              width: auto;
+          }
+        .esri-legend--card__layer-caption{
+           display: none;
+         }
+         .esri-legend__layer-caption {
+        display: none;
+    
+        }
+        .esri-widget__heading {
+        color: rgb(8, 8, 8);
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+        }
+    </style>
+    <style>
+         /* Dynamic table CSS  */
+
+        .custom-table thead {
+            position: sticky;
+            top: 0;
+            background-color: #fff;
+            /* Important to prevent transparency */
+            z-index: 2;
+        }
+
+        .custom-table thead {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        /* Styling for the custom table */
+        .custom-table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        /* Targeting header and cell dropdowns */
+        .custom-header,
+        .custom-cell {
+            position: relative;
+        }
+
+        .custom-table tr {
+            border-style: outset;
+        }
+
+        /* Dropdown menu for both header and cell */
+        .custom-header .dropdown-menu,
+        .custom-cell .dropdown-menu {
+            display: none;
+            position: absolute;
+            z-index: 1050;
+            background-color: white;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0s ease 0.2s;
+        }
+
+        /* Remove hover-based dropdown visibility */
+        .custom-header:hover .dropdown-menu,
+        .custom-cell:hover .dropdown-menu {
+            display: none;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        /* Show dropdown when triggered by click */
+        .custom-header .dropdown-menu.show,
+        .custom-cell .dropdown-menu.show {
+            display: block;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.2s ease, visibility 0s ease 0s;
+        }
+
+        /* Header and cell text styling */
+        .custom-header .header-text,
+        .custom-cell .cell-text {
+            display: contents;
+        }
+
+        /* Hide text and show input when editing */
+        .custom-header .edit-input,
+        .custom-cell .edit-input {
+            display: none;
+            width: 100%;
+            /* text-align: center; */
+        }
+
+        /* Dropdown options styling */
+        .custom-header .dropdown-menu a,
+        .custom-cell .dropdown-menu a {
+            cursor: pointer;
+        }
+
+        /* Add padding to table cells for better alignment */
+
+        .custom-table td,
+        .custom-table th {
+            padding: 0px;
+        }
+        
+        .custom-table .form-control-sm, .custom-table .form-select {
+            border-radius: 0!important;
+            border: unset!important;
+            padding: 0;
+        }
+
+        .custom-table .form-select {
+            border-radius: 1px!important;
+            padding: .375rem .2rem;
+            background-image: none;
+        }
+
+        .custom-table .serial-col{
+            width: 55px;
+            max-width: 55px;
+            text-align: center;
+        }
+    </style>
+    <link href="./assets/css/tables.css?v=1.1.4" type="text/css" rel="stylesheet">
+    <link href="./assets/css/build.form.table.css?v=1.0.2" type="text/css" rel="stylesheet">
+    <link href="./assets/css/build.list.view.datatable.loader.css?v=1.0.0" type="text/css" rel="stylesheet">
+    <link href="./assets/css/table.buil.scroll.css?v=1.0.2" type="text/css" rel="stylesheet">
 </head>
 
 <body>
@@ -809,11 +1279,126 @@
             <div class="message">Form submitted successfully.</div>
         </div>
     </div>
+
+    <!-- Modal (tabs with separate Download button per tab) -->
+    <div class="modal fade" id="downloadApprovalModal" tabindex="-1" aria-labelledby="downloadApprovalModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="downloadApprovalModalLabel">Download Language</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Nav tabs -->
+                    <ul class="nav nav-tabs" id="downloadLangTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="tab-form-btn" data-bs-toggle="tab"
+                                data-bs-target="#tab-form" type="button" role="tab" aria-controls="tab-form"
+                                aria-selected="true">
+                                Form
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-catalogue-btn" data-bs-toggle="tab"
+                                data-bs-target="#tab-catalogue" type="button" role="tab" aria-controls="tab-catalogue"
+                                aria-selected="false">
+                                Catalogue
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab panes -->
+                    <div class="tab-content pt-3" id="downloadLangTabsContent">
+                        <!-- Form Language Tab -->
+                        <div class="tab-pane fade show active" id="tab-form" role="tabpanel"
+                            aria-labelledby="tab-form-btn">
+                            <form id="downloadApprovalForm_form">
+                                <div class="mb-3">
+                                    <label for="downloadLang_form" class="form-label">Language</label>
+                                    <select id="downloadLang_form" class="form-select" required>
+                                        <option value="">Select</option>
+                                    </select>
+                                </div>
+                                <!-- Download button for Form tab -->
+                                <div class="d-flex justify-content-end download-actions">
+                                    <button type="button" id="confirmUploadBtn_form" class="btn btn-download btn-sm"
+                                        title="Upload Form CSV">
+                                        <i class="fa-solid fa-file-export"></i>
+                                        <span>Upload Form</span>
+                                    </button>
+                                    <button type="button" id="confirmDownloadBtn_form" class="btn btn-download btn-sm"
+                                        title="Download Form CSV">
+                                        <i class="fa-solid fa-download"></i>
+                                        <span>Download Form</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <!-- Catalogue Language Tab -->
+                        <div class="tab-pane fade" id="tab-catalogue" role="tabpanel"
+                            aria-labelledby="tab-catalogue-btn">
+                            <form id="downloadApprovalForm_catalogue">
+                                <div class="mb-3">
+                                    <label for="downloadLang_catalogue" class="form-label">Language</label>
+                                    <select id="downloadLang_catalogue" class="form-select" required>
+                                        <option value="">Select</option>
+                                    </select>
+                                </div>
+                                <!-- Download button for Catalogue tab -->
+                                <div class="d-flex justify-content-end download-actions">
+                                    <button type="button" id="confirmUploadBtn_catalogue"
+                                        class="btn btn-download btn-sm" title="Download Catalogue CSV">
+                                        <i class="fa-solid fa-file-export"></i>
+                                        <span>Upload Catalogue</span>
+                                    </button>
+                                    <button type="button" id="confirmDownloadBtn_catalogue"
+                                        class="btn btn-download btn-sm" title="Download Catalogue CSV">
+                                        <i class="fa-solid fa-download"></i>
+                                        <span>Download Catalogue</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===============================================-->
     <!--    Main Content-->
     <!-- ===============================================-->
     <main class="main" id="top">
+        <nav class="navbar navbar-vertical navbar-expand-lg" style="display:none;">
+            <script>
+                var navbarStyle = window.config.config.phoenixNavbarStyle;
+                if (navbarStyle && navbarStyle !== 'transparent') {
+                    document.querySelector('body').classList.add(`navbar-${navbarStyle}`);
+                }
+            </script>
+            <div class="collapse navbar-collapse" id="navbarVerticalCollapse">
+                <!-- scrollbar removed-->
+                <div class="navbar-vertical-content">
+                    <ul class="navbar-nav flex-column" id="navbarVerticalNav">
 
+                    </ul>
+                </div>
+            </div>
+            <div class="navbar-vertical-footer">
+                <button
+                    class="btn navbar-vertical-toggle border-0 fw-semi-bold w-100 white-space-nowrap d-flex align-items-center">
+                    <span class="uil uil-left-arrow-to-left fs-0"></span>
+                    <span class="uil uil-arrow-from-right fs-0"></span>
+                    <span class="navbar-vertical-footer-text ms-2 slp" data-key-lang="label.collapsedview">Collapsed
+                        View</span>
+                </button>
+            </div>
+        </nav>
         <nav class="navbar navbar-top fixed-top navbar-expand" id="navbarDefault" style="display:none;">
             <div class="collapse navbar-collapse justify-content-between">
                 <div class="navbar-logo">
@@ -2649,9 +3234,43 @@
                 navbarVertical.classList.add('navbar-darker');
             }
         </script>
-        <div class="content px-0 pt-9" id="main-container">
+
+        <div class="content px-0 pt-9 d-none" id="main-container">
 
         </div>
+        <div class="content px-0 pt-9" id="main-container-loader">
+
+        </div>
+
+        <div class="content px-0 pt-9 d-none">
+            <div class="d-flex w-100" id="layoutRow">
+                <!-- Main content -->
+                <div class="flex-grow-1" id="main-wrapper">
+                    <div id="main-container-x"><!-- your main content --></div>
+                </div>
+
+                <!-- Sidebar -->
+                <aside id="sidebarModule" class="d-none">
+                    <div class="card rounded-top-0 h-100">
+                        <div class="card-header p-3">
+                            <!-- search etc -->
+                        </div>
+                        <div class="card-body">
+                            <div id="content-slider-list">
+                                <div id="listnodetree" style="width:250px;"></div>
+                            </div>
+                        </div>
+                        <div class="card-footer p-2 text-center">
+                            <button id="toggleSidebarForModule" class="btn btn-sm btn-primary"
+                                aria-expanded="true">⇔</button>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+
+
         <div class="support-chat-container d-none">
             <div class="container-fluid support-chat">
                 <div class="card bg-white">
@@ -2993,13 +3612,14 @@
     <script src="node_modules/is_js/is.min.js"></script>
     <script src="assets/icons/fontawesome-free-6.5.1-web/js/all.min.js"></script>
     <script src="node_modules/lodash/lodash.min.js"></script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=window.scroll"></script>
+    <script src="node_modules/choices.js/public/assets/scripts/choices.min.js"></script>
     <!--script src="node_modules/list.js/dist/list.min.js"></script-->
     <script src="node_modules/feather-icons/dist/feather.min.js"></script>
     <script src="node_modules/dayjs/dayjs.min.js"></script>
     <script src="node_modules/dropzone/dist/dropzone-min.js"></script>
     <script src="assets/js/phoenix.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
     <script src="https://cdn.datatables.net/2.0.1/js/dataTables.js"></script>
     <script src="https://cdn.datatables.net/2.0.1/js/dataTables.bootstrap5.js"></script>
@@ -3010,6 +3630,7 @@
     <script src="https://cdn.datatables.net/select/2.0.0/js/select.dataTables.js"></script>
     <script src="node_modules/bootstrap-menu/dist/BootstrapMenu.min.js"></script>
     <script src="node_modules/toastr/toastr.js"></script>
+    <script src="libs/choices/choices.min.js"></script>
     <!-- ===============================================-->
     <!--    End of JavaScripts-->
     <!-- ===============================================-->
@@ -3018,7 +3639,7 @@
     <!--    End of Google-->
     <!-- ===============================================-->
     <script type="text/javascript"
-        src="//maps.googleapis.com/maps/api/js?key=AIzaSyCQSsXucH4x7TTxJfr5JE7EWgcpCAhaEH4&callback=initMap&libraries=places,drawing"></script>
+        src="//maps.googleapis.com/maps/api/js?key=AIzaSyCqkSBraSokKkxiJmTIA_y5sgYnYVppX5Y&callback=initMap&libraries=places,drawing"></script>
     <!-- ===============================================-->
     <!--    End of Google-->
     <!-- ===============================================-->
@@ -3030,43 +3651,73 @@
     <script src="src/page/system-config.js?v=1.0.0"></script>
     <script src="src/tools/GET.js?v=1.0.0"></script>
     <script src="src/tools/POST.js?v=1.0.0"></script>
-    <script src="src/tools/objetsArrays.js?v=1.0.0"></script>
+    <script src="src/tools/objetsArrays.js?v=1.0.1"></script>
     <script src="src/tools/collections.js?v=1.0.0"></script>
-    <script src="src/tools/forms.js?v=1.0.6"></script>
-    <script src="src/tools/export.js?v=1.0.0"></script>
-    <script src="src/utils/datatables.js?v=1.0.2"></script>
-    <script src="src/hooks/controllers.js?v=1.0.0"></script>
+    <script src="src/tools/forms.js?v=1.2.7"></script>
+    <script src="src/tools/export.js?v=1.0.8"></script>
+    <script src="src/tools/import.js?v=1.1.4"></script>
+    <script src="src/utils/datatables.js?v=1.0.8"></script>
+    <script src="src/build/components/table.buil.scroll.js?v=1.0.4"></script>
+    <script src="src/build/components/build.form.table.js?v=1.0.3"></script>
+    <script src="src/build/components/build.list.view.datatable.loader.js?v=1.0.2"></script>
+    <script src="src/hooks/controllers.js?v=1.0.2"></script>
     <script src="src/services/components/catalogs.js?v=1.0.0"></script>
     <script src="src/services/private/security/groups.js?v=1.0.0"></script>
     <script src="src/services/private/security/projects.js?v=1.0.0"></script>
     <script src="src/services/private/security/users.js?v=1.0.0"></script>
-    <script src="src/page/informationassignment.js?v=1.0.0"></script>
-    <script src="src/build/components/select.js?v=1.0.0"></script>
+    <script src="src/page/informationassignment.js?v=1.0.2"></script>
+    <script src="src/build/components/select.js?v=1.0.7"></script>
+    <script src="src/build/components/audio.js?v=1.0.2"></script>
 
 
-    <script src="src/utils/language.js?v=1.0.0"></script>
-    <script src="src/utils/config.js?v=1.0.0"></script>
+    <script src="src/utils/language.js?v=1.0.4"></script>
+    <script src="src/utils/config.js?v=1.0.2"></script>
     <script src="src/utils/secure.js?v=1.0.0"></script>
-    <script src="src/utils/build.js?v=1.0.0"></script>
+    <script src="src/utils/build.js?v=1.1.4"></script>
+    <script src="src/utils/encrypt.js?v=1.0.6"></script>
 
-    <script src="src/tools/maps.js?v=1.0.1"></script>
-    <script src="src/tools/linkedField.js?v=1.0.1"></script>
+    <script src="src/tools/maps.js?v=1.0.9"></script>
+    <script src="src/tools/linkedField.js?v=1.0.3"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="src/components/dashboardInList.js?v=1.1.4"></script>
+    <script src="src/forms/list.language.controller.js?v=1.0.0"></script>
+    <script src="src/list/manager.controller.js?v=1.0.2"></script>
+    <script src="src/list/loader.controller.js?v=1.0.1"></script>
 
-    <script src="src/page/system.js?v=1.2.3"></script>
-    <script src="src/page/system-exceptions.js?v=1.0.7"></script>
+    <script src="src/page/system.js?v=1.7.3"></script>
+    <script src="src/tools/qrController.js?v=1.0.3"></script>
+    <script src="src/tools/dynamics.controller.js?v=1.0.0"></script>
+    <script src="src/custom/controllerquickcreate.js?v=1.0.4"></script>
+    <script src="src/page/system-exceptions.js?v=1.1.1"></script>
     <script src="src/page/system-list.js?v=1.0.4"></script>
-    <script src="src/components/handler.forms.js?v=1.0.1"></script>
-    <script src="src/components/files.manager.js?v=1.0.9"></script>
-    <script src="src/utils/menucontext.js?v=1.0.6"></script>
+    <script src="src/components/handler.forms.js?v=1.0.4"></script>
+    <script src="src/components/files.manager.js?v=1.1.0"></script>
+    <script src="src/utils/menucontext.js?v=1.2.0"></script>
 
 
     <script src="src/controllers/delete.js?v=1.0.0"></script>
     <script src="src/controllers/draft.js?v=1.0.4"></script>
-    <script src="src/build/components/view.js?v=1.0.0"></script>
-    <script src="src/build/components/table.js?v=1.0.0"></script>
+    <script src="src/build/components/view.js?v=1.0.1"></script>
+    <script src="src/build/components/table.js?v=1.2.1"></script>
+    <script src="src/build/components/date.js?v=1.0.2"></script>
+    <script src="src/build/components/signature.js?v=1.0.8"></script>
+    <script src="src/custom/projects.mx.js?v=1.1.3"></script>
 
     <!-- Flatpickr JS -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/hi.js"></script>
+
+    <script src="vendor/echarts/echarts.min.js"></script>
+
+    <script src="src/user/account.js?v=1.0.1"></script>
+    <script src="src/user/any.user.acctions.js?v=1.0.8"></script>
+    <script src="src/forms/quick.controller.js?v=1.0.1"></script>
+    <script src="src/forms/form.add.register.controller.js?v=1.0.3"></script>
+    <script src="src/forms/searchable.table.controller.js?v=1.0.3"></script>
+    <script src="src/forms/form.languaje.controller.js?v=1.0.7"></script>
+    <script src="https://js.arcgis.com/4.29/"></script>
 
     <script>
         const validateObserver = new MutationObserver((mutations) => {
@@ -3108,32 +3759,139 @@
         function initFlatpickr(el) {
             if (!el._flatpickr) {
                 flatpickr(el, {
-                    dateFormat: "d-m-Y",
-                    minDate: "today"
+                    dateFormat: "d-m-Y"
                 });
             }
         }
 
-        // Init for existing elements
-        document.querySelectorAll(".datepicker").forEach(initFlatpickr);
+        $(document).on('click', '.datepicker', function (e) {
+            try {
+                // Only respond to left-click
+                if (e.button !== 0) return;
 
-        // Observe DOM for new datepickers
-        const datepickrobserver = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-                mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === 1) {
-                        if (node.matches(".datepicker")) {
-                            initFlatpickr(node);
-                        }
-                        node.querySelectorAll?.(".datepicker").forEach(initFlatpickr);
+                const input = this;
+
+                // If flatpickr already exists and is open/closed, handle normally
+                if (input._flatpickr) {
+                    if (!input._flatpickr.isOpen) {
+                        // Defer to allow native focus handling
+                        setTimeout(() => {
+                            try {
+                                input._flatpickr.open();
+                            } catch (err) {
+                                console.error('[ERR] opening existing flatpickr on click', err);
+                            }
+                        }, 0);
+                    } else {
                     }
-                });
-            });
+                    return;
+                }
+
+                // No flatpickr instance found — create one with same options as initFlatpickr, then open it
+                try {
+                    // Use same options as initFlatpickr
+                    flatpickr(input, {
+                        dateFormat: "d-m-Y"
+                        // keep default behaviour of flatpickr (you can add callbacks if needed)
+                    });
+
+                    // Now open the freshly created instance (defer to let flatpickr attach)
+                    setTimeout(() => {
+                        try {
+                            if (input._flatpickr) {
+                                input._flatpickr.open();
+                            } else {
+                                console.warn('[WARN] flatpickr instance still missing after init', input);
+                            }
+                        } catch (err) {
+                            console.error('[ERR] opening new flatpickr instance', err);
+                        }
+                    }, 0);
+                } catch (err) {
+                    console.error('[ERR] creating flatpickr instance on click', err);
+                }
+            } catch (err) {
+                console.error('[ERR] .datepicker click handler', err);
+            }
         });
 
-        datepickrobserver.observe(document.body, { childList: true, subtree: true });
+        // 2) Ensure contextmenu handler for cell WILL also explicitly close flatpickr when target is a date input
+        //    (This augments your existing td.custom-cell contextmenu handler; safe to include even if handler already closes)
+        $(document).on('contextmenu', 'td.custom-cell', function (e) {
+            try {
+                // if right-click is on an input that is a datepicker, prevent native menu and close calendar
+                const tgt = e.target;
+                if (tgt && (tgt.matches && tgt.matches('.datepicker') || tgt.classList && tgt.classList.contains('datepicker'))) {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (err) { console.warn('[WARN] preventDefault failed', err); }
+
+                    // close any open flatpickr instance immediately
+                    try {
+                        if (tgt._flatpickr) {
+                            tgt._flatpickr.close();
+                        }
+                    } catch (err) {
+                        console.error('[ERR] closing flatpickr on contextmenu', err);
+                    }
+                    // continue — the original handler will show the custom dropdown because we don't return here
+                }
+            } catch (err) {
+                console.error('[ERR] preflight for datepicker contextmenu', err);
+            }
+            // NOTE: we do NOT stop here — this is only a preflight to ensure flatpickr doesn't open.
+            // The real td.custom-cell contextmenu handler (you already have) will execute afterwards.
+        });
 
     </script>
+    <script>
+        /* ==== Right-click on Select2: open the same custom cell dropdown (disable native menu) ==== */
+        $(document).on('contextmenu', '.custom-table .select2-container', function (e) {
+            try {
+                if (e.button !== 2) return; // only handle right-click
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const $container = $(this);
+
+                // Try to find the original <select> and close its select2 dropdown if open
+                try {
+                    const $select = $container.prev('select').length ? $container.prev('select') : $container.next('select');
+                    if ($select && $select.length && $select.data('select2')) {
+                        $select.select2('close');
+                    }
+                } catch (err) {
+                    console.warn('[WARN] error closing select2', err);
+                }
+
+                // Find the containing cell and its custom dropdown (fallback to nearest td.custom-cell)
+                let $td = $container.closest('td.custom-cell');
+                if (!$td.length) $td = $container.closest('tr').find('td.custom-cell').first();
+                if (!$td.length) {
+                    return;
+                }
+
+                const $dropdown = $td.find('.dropdown-menu, .table-dropdown').first();
+                if (!$dropdown || !$dropdown.length) {
+                    return;
+                }
+
+                // Hide other dropdowns in this table, then toggle this one
+                $td.closest('.custom-table').find('.dropdown-menu, .table-dropdown').not($dropdown).hide();
+                const isVisible = $dropdown.is(':visible');
+                if (isVisible) {
+                    $dropdown.hide();
+                } else {
+                    $dropdown.show();
+                }
+            } catch (err) {
+                console.error('[ERR] select2 contextmenu handler', err);
+            }
+        });
+    </script>
+
     <script>
         // Store last copied date globally
         let lastCopiedDate = "";
@@ -3161,8 +3919,6 @@
             }
         });
     </script>
-
-
 
     <script>
         const targetNode = document.getElementById("detail-view-Email_feature");
@@ -3217,8 +3973,209 @@
         }
     </style>
 
+    <style>
+        #layoutRow {
+            height: calc(100vh - var(--phoenix-navbar-top-height));
+        }
 
+        /* expanded sidebar */
+        #sidebarModule {
+            width: 300px;
+            /* your normal sidebar width */
+            min-width: 300px;
+            max-width: 300px;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        /* collapsed sidebar */
+        #sidebarModule.collapsed {
+            width: 50px;
+            min-width: 50px;
+            max-width: 50px;
+        }
+
+        /* hide everything except footer when collapsed */
+        #sidebarModule.collapsed .card-header,
+        #sidebarModule.collapsed .card-body {
+            display: none !important;
+        }
+
+        /* footer always visible */
+        #sidebarModule .card-footer {
+            position: absolute;
+            bottom: 8px;
+            left: 0;
+            right: 0;
+        }
+
+        #main-wrapper {
+            flex-grow: 1;
+            min-width: 0;
+            /* important for flexbox to stop pushing page width */
+        }
+
+        #main-container-x {
+            overflow-x: auto;
+            white-space: nowrap;
+            /* so wide content scrolls instead of wrapping */
+        }
+
+        .container-form-module .table-responsive {
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch; 
+        }
+        .container-form-module .table-responsive .form-label {
+            font-size: .9rem !important;
+        }
+    </style>
+    <style>
+        /* Highlight the active tab (stronger than default) */
+        #downloadLangTabs .nav-link {
+            color: #495057;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: .5rem;
+            padding: .45rem .8rem;
+            transition: all .15s ease;
+            margin-right: .35rem;
+        }
+
+        #downloadLangTabs .nav-link:hover {
+            color: #0b5ed7;
+            background: rgba(11, 94, 215, 0.06);
+            transform: translateY(-1px);
+        }
+
+        /* Active tab styling */
+        #downloadLangTabs .nav-link.active {
+            color: #fff !important;
+            background: linear-gradient(180deg, #0d6efd, #0b5ed7);
+            border-color: rgba(11, 94, 215, 0.2);
+            box-shadow: 0 6px 18px rgba(11, 94, 215, 0.12);
+            transform: translateY(-2px);
+        }
+
+        /* Make tab list slightly separated from content */
+        #downloadLangTabs+.tab-content {
+            margin-top: 1rem;
+        }
+
+        /* Ensure small screens look good */
+        @media (max-width: 576px) {
+            #downloadLangTabs .nav-link {
+                padding: .4rem .6rem;
+                font-size: .9rem;
+            }
+        }
+    </style>
+    <!-- Updated button styles (place in a <style> block in your page or stylesheet) -->
+    <style>
+        /* Download button — distinct look from active tab */
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .45rem .85rem;
+            font-weight: 600;
+            border-radius: .6rem;
+            border: 0;
+            cursor: pointer;
+            color: #fff;
+            background: linear-gradient(90deg, #1e88e5 0%, #6a11cb 100%);
+            /* cool blue → violet */
+            box-shadow: 0 6px 20px rgba(106, 17, 203, 0.18), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+            transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+            -webkit-appearance: none;
+        }
+
+        /* subtle hover and active */
+        .btn-download:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.03);
+            box-shadow: 0 10px 30px rgba(106, 17, 203, 0.22);
+        }
+
+        .btn-download:active {
+            transform: translateY(0);
+        }
+
+        /* small / compact variant */
+        .btn-download.btn-sm {
+            padding: .3rem .6rem;
+            font-size: .85rem;
+            border-radius: .45rem;
+        }
+
+        /* Icon styling */
+        .btn-download .fa-download {
+            font-size: 0.95rem;
+            line-height: 1;
+        }
+
+        /* Accessible focus ring */
+        .btn-download:focus {
+            outline: 3px solid rgba(26, 115, 232, 0.18);
+            outline-offset: 2px;
+        }
+
+        /* Alternate 'ghost' style (if you want a lighter button) */
+        .btn-download-ghost {
+            background: transparent;
+            color: #1e88e5;
+            border: 1px solid rgba(30, 136, 229, 0.12);
+            box-shadow: none;
+        }
+
+        .btn-download-ghost:hover {
+            background: rgba(30, 136, 229, 0.05);
+        }
+
+        /* Ensure spacing from other elements */
+        .download-actions {
+            display: flex;
+            gap: .5rem;
+            justify-content: flex-end;
+        }
+
+        /* keep button text white in all states */
+        .btn-download,
+        .btn-download:hover,
+        .btn-download:focus,
+        .btn-download:active {
+            color: #ffffff !important;
+        }
+    </style>
+    <style>
+        /* Make Select2 match Bootstrap control height & spacing */
+        .select2-container--default .select2-selection--single {
+            height: calc(1.5em + .75rem + 2px);
+            /* match .form-select height */
+            padding: .375rem .75rem;
+            border-radius: .375rem;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 1.2;
+        }
+
+        .select2-hidden-accessible {
+            display: none;
+        }
+
+        .mt-3 {
+            margin-top: 1rem;
+        }
+    </style>
     <script>
+
+        document.getElementById("toggleSidebarForModule").addEventListener("click", function () {
+            const sidebar = document.getElementById("sidebarModule");
+            sidebar.classList.toggle("collapsed");
+            const isCollapsed = sidebar.classList.contains("collapsed");
+            this.setAttribute("aria-expanded", String(!isCollapsed));
+        });
+
         function appendRow(button) {
             const table = button.closest('table');
             const tbody = table.querySelector('tbody');
@@ -3475,7 +4432,6 @@
             var headersLeftToshow = allHeaders.filter(':visible').length;
             $table.find("tfoot").find("td").attr("colspan", headersLeftToshow + 1);
         }
-
     </script>
 
 
@@ -3533,18 +4489,34 @@
 
 
 
-        $(document).on("click", ".custom-header", function (e) {
-            e.stopPropagation(); // Prevent outside click closing it immediately
+        $(document).on("contextmenu", ".custom-header", function (e) {
+            try {
 
-            const $dropdown = $(this).find(".dropdown-menu");
-            const isVisible = $dropdown.is(":visible");
+                // If right-click happened on an interactive control inside header, ignore
+                if (e.target.closest && e.target.closest('input, select, textarea, button')) {
+                    return;
+                }
 
-            // Hide all dropdowns first
-            $(".custom-header .dropdown-menu").hide();
+                e.preventDefault();
+                e.stopPropagation();
 
-            // Toggle current one
-            if (!isVisible) {
-                $dropdown.show();
+                const $header = $(this);
+                const $dropdown = $header.find(".dropdown-menu");
+                if (!$dropdown.length) {
+                    return;
+                }
+
+                // Toggle: hide other header dropdowns first
+                $header.closest('.custom-table').find('.dropdown-menu, .table-dropdown').not($dropdown).hide();
+
+                const isVisible = $dropdown.is(":visible");
+                if (isVisible) {
+                    $dropdown.hide();
+                } else {
+                    $dropdown.show();
+                }
+            } catch (err) {
+                console.error('[ERR] header contextmenu handler', err);
             }
         });
 
@@ -3564,7 +4536,7 @@
                     // ✅ Check for any new header dropdowns
                     $node.find('.custom-header').each(function () {
 
-                        if ($(this).find('i.fa-sort').length === 0) {
+                        if ($(this).find('i.fa-sort').length === 0 && $(this).find('span.asc-btn').length === 0) {
                             $(this).append('<span style="cursor: pointer;" class="float-end asc-btn"><i class="fa-solid fa-sort"></i></span>');
                         }
 
@@ -3695,27 +4667,16 @@
 
 
 
+        // Prevent clicks inside any Select2 widget from bubbling up to the td handler
 
-
-        // Toggle dropdown in td.custom-cell on click
-        $(document).on("click", "td.custom-cell", function (e) {
+        $(document).on('click', '.select2-container, .select2-selection, .select2-selection__rendered, .select2-selection__arrow', function (e) {
             e.stopPropagation();
-
-            if (event.target.tagName.toLowerCase() === 'input' || event.target.tagName.toLowerCase() === 'select') {
-                return;
-            }
-
-            const $dropdown = $(this).find(".dropdown-menu");
-            const isVisible = $dropdown.is(":visible"); // ✅ check first
-
-            // Hide all other dropdowns
-            $("td.custom-cell .dropdown-menu").hide();
-
-            // Toggle current one properly
-            if (!isVisible) {
-                $dropdown.show();
-            }
         });
+        $(document).on('click', '.select2-dropdown', function (e) { e.stopPropagation(); });
+
+
+
+
 
         // Hide dropdowns when clicking outside
         $(document).on("click", function () {
@@ -3813,51 +4774,49 @@
 
 
         // Cell dropdown toggle
-        $(document).on("click", "td.custom-cell", function (e) {
-            e.stopPropagation();
+        // Cell: right-click opens cell dropdown (including when right-clicking inputs inside cell)
+        $(document).on("contextmenu", "td.custom-cell", function (e) {
+            try {
 
-            if (event.target.tagName.toLowerCase() === 'input' || event.target.tagName.toLowerCase() === 'select') {
-                return;
+                // Do NOT ignore inputs — allow right-click on inputs to open the dropdown.
+                // Keep Select2 guard:
+                if ($(this).find('.select2-container')[0]) {
+                    const tdSelect2 = $(this).find('.select2-container')[0];
+                    if (tdSelect2 === e.target || tdSelect2.contains(e.target)) {
+                        return;
+                    }
+                }
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const $cell = $(this);
+                const $dropdown = $cell.find(".dropdown-menu, .table-dropdown").first();
+                if (!$dropdown || !$dropdown.length) {
+                    return;
+                }
+
+                // Hide other cell dropdowns
+                $("td.custom-cell .dropdown-menu, td.custom-cell .table-dropdown").not($dropdown).hide();
+
+                const isVisible = $dropdown.is(":visible");
+                if (isVisible) {
+                    $dropdown.hide();
+                } else {
+                    $dropdown.show();
+                }
+            } catch (err) {
+                console.error('[ERR] cell contextmenu handler', err);
             }
-
-            const $cell = $(this);
-            const $dropdown = $cell.find(".dropdown-menu");
-
-            // Hide other dropdowns
-            $(".custom-cell .table-dropdown").hide();
-
-            // Scroll container
-            const $scrollContainer = $cell.closest("div[style*='overflow-y: auto']");
-
-            // Calculate absolute position even for sticky (frozen) rows
-            const containerOffset = $scrollContainer.offset();
-            const cellOffset = $cell.offset();
-
-            const top = cellOffset.top - containerOffset.top + $scrollContainer.scrollTop() + $cell.outerHeight();
-            const left = cellOffset.left - containerOffset.left + $scrollContainer.scrollLeft();
-
-            // Apply proper positioning
-            $dropdown.css({
-                position: "absolute",
-                top: top + "px",
-                left: left + "px",
-                display: "block",
-                zIndex: 9999
-            });
         });
+
+
 
 
         // Close only table dropdowns
         $(document).on("click", function () {
             $(".table-dropdown").hide();
         });
-
-
-
-
-
-
-
 
         let copiedRowData = {
             $row: null,
@@ -4112,244 +5071,237 @@
     <!-- the sheet -> popup with radios -> two-way sync of Global ID.    -->
     <!-- ============================================================= -->
     <script>
-        (function () {
-            "use strict";
+    (function () {
+        "use strict";
 
-            var TARGET_MODULES = ["6TRIM7EZNI0YDDUVY5B9", "X360TB6P1163J84GTABQ"];
-            if (TARGET_MODULES.indexOf(new URLSearchParams(window.location.search).get("module")) === -1) return;
+        var TARGET_MODULES = ["6TRIM7EZNI0YDDUVY5B9","X360TB6P1163J84GTABQ"];
+        if (TARGET_MODULES.indexOf(new URLSearchParams(window.location.search).get("module")) === -1) return;
 
-            var ENDPOINT = "/api/dashboard_build/sync_global_id.php";
+        var ENDPOINT = "/api/dashboard_build/sync_global_id.php";
 
-            var CFG = {
-                firstNameKeys: ["first name", "firstname"],
-                middleNameKeys: ["middle name", "middlename"],
-                lastNameKeys: ["last name", "lastname", "surname"],
-                stateKeys: ["state"],
-                localityKeys: ["locality"],
-                villageKeys: ["village", "village name"],
-                genderKeys: ["gender"],
-                phoneKeys: ["phone", "mobile"],
-                beneficiaryIdKeys: ["beneficiary id", "beneficiaryid", "benef id"],
-                actionHeader: "Action"
-            };
+        var CFG = {
+            firstNameKeys: ["first name", "firstname"],
+            middleNameKeys: ["middle name", "middlename"],
+            lastNameKeys: ["last name", "lastname", "surname"],
+            stateKeys: ["state"],
+            localityKeys: ["locality"],
+            villageKeys: ["village", "village name"],
+            genderKeys: ["gender"],
+            phoneKeys: ["phone", "mobile"],
+            beneficiaryIdKeys: ["beneficiary id", "beneficiaryid", "benef id"],
+            actionHeader: "Action"
+        };
 
-            /* ---------- helpers ---------- */
-            function norm(v) { return (v == null ? "" : String(v)).replace(/\s+/g, " ").trim().toLowerCase(); }
-            function raw(v) { return (v == null ? "" : String(v)).replace(/\s+/g, " ").trim(); }
-            function esc(s) {
-                return (s == null ? "" : String(s)).replace(/&/g, "&amp;").replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-            }
-            function headerTexts($t) {
-                var o = []; $t.find("thead tr").first().find("th").each(function () { o.push(norm($(this).text())); }); return o;
-            }
-            function rowCellsRaw($tr) { var o = []; $tr.find("td").each(function () { o.push(raw($(this).text())); }); return o; }
-            function findCol(headers, keys) {
-                for (var i = 0; i < headers.length; i++)
-                    for (var k = 0; k < keys.length; k++)
-                        if (headers[i].indexOf(keys[k]) !== -1) return i;
-                return -1;
-            }
-            function moduleTableName() {
-                var $t = $("table.tb-action-select, table[id^='tb-']").first();
-                return $t.attr("data-module-table") || (($t.attr("id") || "").replace(/^tb-/, "")) || "";
-            }
-            function backendBase() { return (typeof __backend !== "undefined") ? __backend : ""; }
+        /* ---------- helpers ---------- */
+        function norm(v) { return (v == null ? "" : String(v)).replace(/\s+/g, " ").trim().toLowerCase(); }
+        function raw(v) { return (v == null ? "" : String(v)).replace(/\s+/g, " ").trim(); }
+        function esc(s) {
+            return (s == null ? "" : String(s)).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+        }
+        function headerTexts($t) {
+            var o = []; $t.find("thead tr").first().find("th").each(function () { o.push(norm($(this).text())); }); return o;
+        }
+        function rowCellsRaw($tr) { var o = []; $tr.find("td").each(function () { o.push(raw($(this).text())); }); return o; }
+        function findCol(headers, keys) {
+            for (var i = 0; i < headers.length; i++)
+                for (var k = 0; k < keys.length; k++)
+                    if (headers[i].indexOf(keys[k]) !== -1) return i;
+            return -1;
+        }
+        function moduleTableName() {
+            var $t = $("table.tb-action-select, table[id^='tb-']").first();
+            return $t.attr("data-module-table") || (($t.attr("id") || "").replace(/^tb-/, "")) || "";
+        }
+        function backendBase() { return (typeof __backend !== "undefined") ? __backend : ""; }
 
-            /* ---------- add the Check button into the existing Action column ---------- */
-            function enhance($table) {
-                // Re-run on every scan (idempotent) so rows that load late still get the button.
-                addButtons($table);
-                setActionHeader($table);
-                if (!$table.data("benefSync")) {
-                    $table.data("benefSync", true);
-                    try {
-                        var dt = $table.DataTable ? $table.DataTable() : null;
-                        if (dt) $table.off("draw.dt.benefSync").on("draw.dt.benefSync", function () { addButtons($table); setActionHeader($table); });
-                    } catch (e) { }
-                }
-            }
-            function addButtons($table) {
-                $table.find("tbody tr").each(function () {
-                    var $tr = $(this);
-                    if ($tr.children("td").length === 0) return;
-                    if ($tr.find(".benef-check-btn").length) return;
-                    var $td = $tr.find(".btn-reveal, .fa-ellipsis-h, [data-bs-toggle='dropdown']").first().closest("td");
-                    if ($td.length === 0) $td = $tr.children("td").last();
-                    $td.find(".dropdown, .btn-reveal, [data-bs-toggle='dropdown'], .dropdown-menu, .fa-ellipsis-h").remove();
-                    $td.addClass("text-center").append(
-                        '<button type="button" class="btn btn-sm btn-outline-secondary benef-check-btn">Check</button>'
-                    );
-                });
-            }
-            function setActionHeader($table) {
-                var $btn = $table.find("tbody .benef-check-btn").first();
-                if (!$btn.length) return;
-                var cell = $btn.closest("td")[0];
-                if (!cell) return;
-                var $th = $table.find("thead tr").first().find("th").eq(cell.cellIndex);
-                if ($th.length && norm($th.text()) !== "action") $th.empty().text("Action");
-            }
-
-            /* ---------- Check click -> whole-record lookup ---------- */
-            $(document).on("click", ".benef-check-btn", function (e) {
-                e.preventDefault(); e.stopPropagation();
-                var $tr = $(this).closest("tr");
-                var $table = $(this).closest("table");
-                var headers = headerTexts($table);
-                var c = rowCellsRaw($tr);
-
-                // UNIQUE record id = DataTables row data .id (beneficiary_id is NOT unique).
-                var key = "";
+        /* ---------- add the Check button into the existing Action column ---------- */
+        function enhance($table) {
+            // Re-run on every scan (idempotent) so rows that load late still get the button.
+            addButtons($table);
+            setActionHeader($table);
+            if (!$table.data("benefSync")) {
+                $table.data("benefSync", true);
                 try {
                     var dt = $table.DataTable ? $table.DataTable() : null;
-                    if (dt) { var rd = dt.row($tr).data(); if (rd && rd.id) key = String(rd.id); }
-                } catch (e) { }
-                if (!key) key = $tr.find('a[data-key-lang="label.see"]').attr('data-uid') || $tr.find('[data-uid]').first().attr('data-uid') || "";
-                if (!key) {
-                    var bi = findCol(headers, CFG.beneficiaryIdKeys);
-                    key = bi >= 0 ? c[bi] : "";
-                }
-                if (!key) { alert("Could not read a unique ID for this row."); return; }
-
-                var $btn = $(this).prop("disabled", true).text("...");
-                fetch(backendBase() + ENDPOINT, {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "lookup", table: moduleTableName(), key: key })
-                })
-                    .then(function (r) { return r.json(); })
-                    .then(function (res) {
-                        $btn.prop("disabled", false).text("Check");
-                        if (res.status !== "success") { alert("Lookup failed: " + (res.message || "")); return; }
-                        renderGrid(key, res);
-                    })
-                    .catch(function (err) { $btn.prop("disabled", false).text("Check"); alert("Request failed: " + err); });
-            });
-
-            /* ---------- comparison grid popup (fields as rows, records as columns) ---------- */
-            function renderGrid(key, res) {
-                $("#benef-modal").remove();
-                var fields = res.fields || [];
-                var main = res.main || { values: [] };
-                var matches = res.matches || [];
-                var dbGid = res.db_global_id || "";
-
-                // record-name header row (rendered BELOW the select + score rows)
-                var headRow = '<tr class="table-light"><th style="min-width:130px;">Field</th><th>E-Agrology</th>';
-                matches.forEach(function (m, i) { headRow += "<th>Match " + (i + 1) + "</th>"; });
-                headRow += "</tr>";
-
-                // select (radio) row
-                var cbRow = '<tr><td class="text-muted small">Select</td><td></td>';
-                matches.forEach(function (m, i) {
-                    cbRow += '<td class="text-center"><input type="radio" name="benef-grid-radio" class="benef-grid-select" data-row="' + m.row + '"' + (i === 0 ? " checked" : "") + "></td>";
-                });
-                cbRow += "</tr>";
-
-                // score row
-                var scRow = '<tr><td><strong>Score</strong></td><td class="text-muted">&mdash;</td>';
-                matches.forEach(function (m) {
-                    var s = m.score || 0;
-                    var cls = s >= 90 ? "text-danger fw-bold" : (s >= 70 ? "text-warning fw-bold" : "text-muted");
-                    scRow += '<td class="' + cls + '">' + s + "%</td>";
-                });
-                scRow += "</tr>";
-
-                // global id row
-                var gidRow = '<tr><td>Global ID</td><td>' + (dbGid ? esc(dbGid) : '<span class="text-muted">(blank)</span>') + "</td>";
-                matches.forEach(function (m) { gidRow += "<td>" + (m.global_id ? esc(m.global_id) : '<span class="text-muted">(blank)</span>') + "</td>"; });
-                gidRow += "</tr>";
-
-                // google form id row (sheet-only column; the DB record has none)
-                var googleRow = '<tr><td>Google Form ID</td><td class="text-muted">&mdash;</td>';
-                matches.forEach(function (m) { googleRow += "<td>" + (m.google_id ? esc(m.google_id) : '<span class="text-muted">(blank)</span>') + "</td>"; });
-                googleRow += "</tr>";
-
-                // one row per field, highlight where a match equals the main record
-                var fieldRows = "";
-                fields.forEach(function (label, fi) {
-                    fieldRows += "<tr><td><strong>" + esc(label) + "</strong></td>";
-                    fieldRows += "<td>" + esc((main.values && main.values[fi]) || "") + "</td>";
-                    matches.forEach(function (m) {
-                        var v = (m.values && m.values[fi]) || "";
-                        var hit = m.matched && m.matched[fi];
-                        fieldRows += "<td" + (hit ? ' style="background:#fff3b0;"' : "") + ">" + esc(v) + "</td>";
-                    });
-                    fieldRows += "</tr>";
-                });
-
-                var body = (matches.length === 0)
-                    ? '<p class="text-center text-muted py-3 mb-0">No rows found in the Google Sheet.</p>'
-                    : '<div class="table-responsive"><table class="table table-sm table-bordered mb-0 text-nowrap align-middle">' +
-                    "<tbody>" + cbRow + scRow + headRow + gidRow + googleRow + fieldRows + "</tbody></table></div>";
-
-                var html =
-                    '<div id="benef-modal" style="position:fixed;inset:0;z-index:1090;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;">' +
-                    '  <div id="benef-panel" class="card shadow" style="max-width:1000px;width:100%;max-height:88vh;display:flex;flex-direction:column;" data-key="' + esc(key) + '">' +
-                    '    <div class="card-header d-flex justify-content-between align-items-center">' +
-                    '      <h5 class="mb-0">Global ID Sync <small class="text-muted">&mdash; ' + esc((main.values && main.values[0]) || "record") + '</small></h5>' +
-                    '      <button type="button" class="btn btn-sm btn-outline-secondary benef-close">Close</button>' +
-                    "    </div>" +
-                    '    <div class="card-body" style="overflow:auto;">' + body + "</div>" +
-                    '    <div class="card-footer d-flex justify-content-between align-items-center">' +
-                    '      <span class="text-muted small">Pick a match column, then sync. Both blank → generate · one present → copy · conflict → DB wins.</span>' +
-                    '      <button type="button" class="btn btn-sm btn-primary benef-apply"' + (matches.length ? "" : " disabled") + ">Get or Create</button>" +
-                    "    </div>" +
-                    "  </div>" +
-                    "</div>";
-
-                $("body").append(html);
+                    if (dt) $table.off("draw.dt.benefSync").on("draw.dt.benefSync", function () { addButtons($table); setActionHeader($table); });
+                } catch (e) {}
             }
+        }
+        function addButtons($table) {
+            $table.find("tbody tr").each(function () {
+                var $tr = $(this);
+                if ($tr.children("td").length === 0) return;
+                if ($tr.find(".benef-check-btn").length) return;
+                var $td = $tr.find(".btn-reveal, .fa-ellipsis-h, [data-bs-toggle='dropdown']").first().closest("td");
+                if ($td.length === 0) $td = $tr.children("td").last();
+                $td.find(".dropdown, .btn-reveal, [data-bs-toggle='dropdown'], .dropdown-menu, .fa-ellipsis-h").remove();
+                $td.addClass("text-center").append(
+                    '<button type="button" class="btn btn-sm btn-outline-secondary benef-check-btn">Check</button>'
+                );
+            });
+        }
+        function setActionHeader($table) {
+            var $btn = $table.find("tbody .benef-check-btn").first();
+            if (!$btn.length) return;
+            var cell = $btn.closest("td")[0];
+            if (!cell) return;
+            var $th = $table.find("thead tr").first().find("th").eq(cell.cellIndex);
+            if ($th.length && norm($th.text()) !== "action") $th.empty().text("Action");
+        }
 
-            /* ---------- Apply -> two-way sync on the selected match column ---------- */
-            $(document).on("click", ".benef-apply", function () {
-                var $panel = $("#benef-panel");
-                var $sel = $panel.find("input.benef-grid-select:checked");
-                if ($sel.length === 0) { alert("Please select a match column first."); return; }
+        /* ---------- Check click -> whole-record lookup ---------- */
+        $(document).on("click", ".benef-check-btn", function (e) {
+            e.preventDefault(); e.stopPropagation();
+            var $tr = $(this).closest("tr");
+            var $table = $(this).closest("table");
+            var headers = headerTexts($table);
+            var c = rowCellsRaw($tr);
 
-                var payload = {
-                    action: "apply",
-                    table: moduleTableName(),
-                    key: $panel.data("key"),
-                    sheet_row: $sel.data("row")
-                };
+            // UNIQUE record id = DataTables row data .id (beneficiary_id is NOT unique).
+            var key = "";
+            try {
+                var dt = $table.DataTable ? $table.DataTable() : null;
+                if (dt) { var rd = dt.row($tr).data(); if (rd && rd.id) key = String(rd.id); }
+            } catch (e) {}
+            if (!key) key = $tr.find('a[data-key-lang="label.see"]').attr('data-uid') || $tr.find('[data-uid]').first().attr('data-uid') || "";
+            if (!key) {
+                var bi = findCol(headers, CFG.beneficiaryIdKeys);
+                key = bi >= 0 ? c[bi] : "";
+            }
+            if (!key) { alert("Could not read a unique ID for this row."); return; }
 
-                var $btn = $(this).prop("disabled", true).text("Working...");
-                fetch(backendBase() + ENDPOINT, {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                })
-                    .then(function (r) { return r.json(); })
-                    .then(function (res) {
-                        $btn.prop("disabled", false).text("Get or Create");
-                        if (res.status === "success") {
-                            alert("Global ID: " + res.global_id + "\nAction: " + res.action_taken +
-                                "\n" + (res.db_updated ? "E-agrology ✓" : "E-agrology —") + "  " + (res.sheet_updated ? "WFP ✓" : "WFP —"));
-                            $("#benef-modal").remove();
-                        } else {
-                            alert("Sync failed: " + (res.message || ""));
-                        }
-                    })
-                    .catch(function (err) { $btn.prop("disabled", false).text("Get or Create"); alert("Request failed: " + err); });
+            var $btn = $(this).prop("disabled", true).text("...");
+            fetch(backendBase() + ENDPOINT, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "lookup", table: moduleTableName(), key: key })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                $btn.prop("disabled", false).text("Check");
+                if (res.status !== "success") { alert("Lookup failed: " + (res.message || "")); return; }
+                renderGrid(key, res);
+            })
+            .catch(function (err) { $btn.prop("disabled", false).text("Check"); alert("Request failed: " + err); });
+        });
+
+        /* ---------- comparison grid popup (fields as rows, records as columns) ---------- */
+        function renderGrid(key, res) {
+            $("#benef-modal").remove();
+            var fields  = res.fields  || [];
+            var main    = res.main    || { values: [] };
+            var matches = res.matches || [];
+            var dbGid   = res.db_global_id || "";
+
+            // record-name header row (rendered BELOW the select + score rows)
+            var headRow = '<tr class="table-light"><th style="min-width:130px;">Field</th><th>E-Agrology</th>';
+            matches.forEach(function (m, i) { headRow += "<th>Match " + (i + 1) + "</th>"; });
+            headRow += "</tr>";
+
+            // select (radio) row
+            var cbRow = '<tr><td class="text-muted small">Select</td><td></td>';
+            matches.forEach(function (m, i) {
+                cbRow += '<td class="text-center"><input type="radio" name="benef-grid-radio" class="benef-grid-select" data-row="' + m.row + '"' + (i === 0 ? " checked" : "") + "></td>";
+            });
+            cbRow += "</tr>";
+
+            // score row
+            var scRow = '<tr><td><strong>Score</strong></td><td class="text-muted">&mdash;</td>';
+            matches.forEach(function (m) {
+                var s = m.score || 0;
+                var cls = s >= 90 ? "text-danger fw-bold" : (s >= 70 ? "text-warning fw-bold" : "text-muted");
+                scRow += '<td class="' + cls + '">' + s + "%</td>";
+            });
+            scRow += "</tr>";
+
+            // global id row
+            var gidRow = '<tr><td>Global ID</td><td>' + (dbGid ? esc(dbGid) : '<span class="text-muted">(blank)</span>') + "</td>";
+            matches.forEach(function (m) { gidRow += "<td>" + (m.global_id ? esc(m.global_id) : '<span class="text-muted">(blank)</span>') + "</td>"; });
+            gidRow += "</tr>";
+
+            // google form id row (sheet-only column; the DB record has none)
+            var googleRow = '<tr><td>Google Form ID</td><td class="text-muted">&mdash;</td>';
+            matches.forEach(function (m) { googleRow += "<td>" + (m.google_id ? esc(m.google_id) : '<span class="text-muted">(blank)</span>') + "</td>"; });
+            googleRow += "</tr>";
+
+            // one row per field, highlight where a match equals the main record
+            var fieldRows = "";
+            fields.forEach(function (label, fi) {
+                fieldRows += "<tr><td><strong>" + esc(label) + "</strong></td>";
+                fieldRows += "<td>" + esc((main.values && main.values[fi]) || "") + "</td>";
+                matches.forEach(function (m) {
+                    var v = (m.values && m.values[fi]) || "";
+                    var hit = m.matched && m.matched[fi];
+                    fieldRows += "<td" + (hit ? ' style="background:#fff3b0;"' : "") + ">" + esc(v) + "</td>";
+                });
+                fieldRows += "</tr>";
             });
 
-            /* ---------- close the modal (button or backdrop click) ---------- */
-            $(document).on("click", ".benef-close", function () { $("#benef-modal").remove(); });
-            $(document).on("click", "#benef-modal", function (e) { if (e.target === this) $("#benef-modal").remove(); });
+            var body = (matches.length === 0)
+                ? '<p class="text-center text-muted py-3 mb-0">No rows found in the Google Sheet.</p>'
+                : '<div class="table-responsive"><table class="table table-sm table-bordered mb-0 text-nowrap align-middle">' +
+                  "<tbody>" + cbRow + scRow + headRow + gidRow + googleRow + fieldRows + "</tbody></table></div>";
 
-            /* ---------- wire up ---------- */
-            function scan() { $("table.tb-action-select, table[id^='tb-']").each(function () { enhance($(this)); }); }
-            setInterval(scan, 1200);
-            $(document).ready(scan);
-        })();
+            var html =
+                '<div id="benef-modal" style="position:fixed;inset:0;z-index:1090;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;">' +
+                '  <div id="benef-panel" class="card shadow" style="max-width:1000px;width:100%;max-height:88vh;display:flex;flex-direction:column;" data-key="' + esc(key) + '">' +
+                '    <div class="card-header d-flex justify-content-between align-items-center">' +
+                '      <h5 class="mb-0">Global ID Sync <small class="text-muted">&mdash; ' + esc((main.values && main.values[0]) || "record") + '</small></h5>' +
+                '      <button type="button" class="btn btn-sm btn-outline-secondary benef-close">Close</button>' +
+                "    </div>" +
+                '    <div class="card-body" style="overflow:auto;">' + body + "</div>" +
+                '    <div class="card-footer d-flex justify-content-between align-items-center">' +
+                '      <span class="text-muted small">Pick a match column, then sync. Both blank → generate · one present → copy · conflict → DB wins.</span>' +
+                '      <button type="button" class="btn btn-sm btn-primary benef-apply"' + (matches.length ? "" : " disabled") + ">Get or Create</button>" +
+                "    </div>" +
+                "  </div>" +
+                "</div>";
 
+            $("body").append(html);
+        }
 
+        /* ---------- Apply -> two-way sync on the selected match column ---------- */
+        $(document).on("click", ".benef-apply", function () {
+            var $panel = $("#benef-panel");
+            var $sel = $panel.find("input.benef-grid-select:checked");
+            if ($sel.length === 0) { alert("Please select a match column first."); return; }
+
+            var payload = {
+                action: "apply",
+                table: moduleTableName(),
+                key: $panel.data("key"),
+                sheet_row: $sel.data("row")
+            };
+
+            var $btn = $(this).prop("disabled", true).text("Working...");
+            fetch(backendBase() + ENDPOINT, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                $btn.prop("disabled", false).text("Get or Create");
+                if (res.status === "success") {
+                    alert("Global ID: " + res.global_id + "\nAction: " + res.action_taken +
+                          "\n" + (res.db_updated ? "E-agrology ✓" : "E-agrology —") + "  " + (res.sheet_updated ? "WFP ✓" : "WFP —"));
+                    $("#benef-modal").remove();
+                } else {
+                    alert("Sync failed: " + (res.message || ""));
+                }
+            })
+            .catch(function (err) { $btn.prop("disabled", false).text("Get or Create"); alert("Request failed: " + err); });
+        });
+
+        /* ---------- close the modal (button or backdrop click) ---------- */
+        $(document).on("click", ".benef-close", function () { $("#benef-modal").remove(); });
+        $(document).on("click", "#benef-modal", function (e) { if (e.target === this) $("#benef-modal").remove(); });
+
+        /* ---------- wire up ---------- */
+        function scan() { $("table.tb-action-select, table[id^='tb-']").each(function () { enhance($(this)); }); }
+        setInterval(scan, 1200);
+        $(document).ready(scan);
+    })();
     </script>
-
-    <!-- ===============================================-->
-    <!--    End of App.js-->
-    <!-- ===============================================-->
-
 
 </body>
 
